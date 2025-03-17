@@ -1,0 +1,60 @@
+trigger:
+- main
+
+variables:
+  serviceConnectionName: 'azure-terraform-sp'           
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+# ==============================================
+# 1. Autenticação no Azure via Service Connection
+# ==============================================
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: $(serviceConnectionName)
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Verificando autenticação..."
+      az account show  # Testa se a conexão está ativa
+
+# ==============================================
+# 2. Execução do Terraform (com variáveis de ambiente)
+# ==============================================
+- script: |
+    echo "Versão do Terraform:"
+    terraform --version
+    
+    echo "Inicializando Terraform..."
+    terraform init
+  displayName: 'Init Terraform'
+  workingDirectory: 'terraform/'
+  env:
+    ARM_CLIENT_ID: #Coloque aqui o seu Application (client) ID criado no AD Azure (Service Principal).
+    ARM_CLIENT_SECRET: #Coloque aqui a chave criada no momento da criação do AD (Service Principal).
+    ARM_TENANT_ID: #Coloque aqui o seu Directory (tenant) ID criado no AD Azure (Service Principal).
+    ARM_SUBSCRIPTION_ID: #Coloque aqui o ID da SUBSCRIPTION que está usando.
+
+- script: |
+    echo "Planejando mudanças..."
+    terraform plan -out=tfplan
+  displayName: 'Plan Terraform'
+  workingDirectory: 'terraform/'
+  env:
+    ARM_CLIENT_ID: #Coloque aqui o seu Application (client) ID criado no AD Azure (Service Principal).
+    ARM_CLIENT_SECRET: #Coloque aqui a chave criada no momento da criação do AD (Service Principal).
+    ARM_TENANT_ID: #Coloque aqui o seu Directory (tenant) ID criado no AD Azure (Service Principal).
+    ARM_SUBSCRIPTION_ID: #Coloque aqui o ID da SUBSCRIPTION que está usando.
+
+- script: |
+    echo "Aplicando configuração..."
+    terraform apply -auto-approve tfplan
+  displayName: 'Apply Terraform'
+  workingDirectory: 'terraform/'
+  env:
+    ARM_CLIENT_ID: #Coloque aqui o seu Application (client) ID criado no AD Azure (Service Principal).
+    ARM_CLIENT_SECRET: #Coloque aqui a chave criada no momento da criação do AD (Service Principal).
+    ARM_TENANT_ID: #Coloque aqui o seu Directory (tenant) ID criado no AD Azure (Service Principal).
+    ARM_SUBSCRIPTION_ID: #Coloque aqui o ID da SUBSCRIPTION que está usando.
